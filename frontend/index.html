@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>NivinMart</title>
 
     <style>
@@ -32,13 +31,12 @@
         }
 
         header p {
-            font-size: 16px;
             color: #d1d5db;
         }
 
         .container {
             width: 90%;
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 50px auto;
         }
 
@@ -51,13 +49,13 @@
 
         .cards {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 25px;
         }
 
         .card {
             background: white;
-            padding: 35px;
+            padding: 35px 25px;
             border-radius: 16px;
             text-align: center;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
@@ -90,7 +88,7 @@
             background: #1f2937;
         }
 
-        @media (max-width: 700px) {
+        @media (max-width: 750px) {
             .cards {
                 grid-template-columns: 1fr;
             }
@@ -111,46 +109,35 @@
 
     <div class="container">
 
-        <h2 class="welcome">
-            Welcome to NivinMart
-        </h2>
+        <h2 class="welcome">Welcome to NivinMart</h2>
 
         <div class="cards">
 
-            <!-- Buyer -->
             <div class="card">
-
                 <h2>Buyer</h2>
-
-                <p>
-                    Shop products and place orders
-                </p>
-
-                <button
-                    onclick="window.location.href='buyer-register.html'">
+                <p>Shop products and place orders</p>
+                <button onclick="location.href='buyer-register.html'">
                     Buyer
                 </button>
-
             </div>
 
-            <!-- Seller -->
             <div class="card">
-
                 <h2>Seller</h2>
-
-                <p>
-                    Manage and sell products
-                </p>
-
-                <button
-                    onclick="window.location.href='seller-register.html'">
+                <p>Manage and sell products</p>
+                <button onclick="location.href='seller-register.html'">
                     Seller
                 </button>
+            </div>
 
+            <div class="card">
+                <h2>Admin</h2>
+                <p>Manage NivinMart products</p>
+                <button onclick="location.href='admin-login.html'">
+                    Admin Login
+                </button>
             </div>
 
         </div>
-
     </div>
 
 </body>

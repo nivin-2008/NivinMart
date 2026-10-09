@@ -1,0 +1,287 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Write Review - NivinMart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f5f7fb;
+            color: #222;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 20px 40px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 650px;
+            margin: 40px auto;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin: 20px 0 8px;
+            font-weight: bold;
+        }
+
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .stars {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .stars button {
+            border: 1px solid #ccc;
+            background: white;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        .stars button.selected {
+            background: #facc15;
+        }
+
+        .main-button,
+        .back-button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .main-button {
+            background: #111827;
+        }
+
+        .back-button {
+            background: #6b7280;
+        }
+
+        #message {
+            margin: 15px 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>NivinMart</h1>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h2>Write Review ⭐</h2>
+
+            <p id="message">Loading products...</p>
+
+            <div id="reviewForm" hidden>
+                <label for="productSelect">Select Product</label>
+                <select id="productSelect"></select>
+
+                <label>Rating</label>
+
+                <div class="stars">
+                    <button type="button" data-rating="1">⭐</button>
+                    <button type="button" data-rating="2">⭐</button>
+                    <button type="button" data-rating="3">⭐</button>
+                    <button type="button" data-rating="4">⭐</button>
+                    <button type="button" data-rating="5">⭐</button>
+                </div>
+
+                <label for="comment">Your Comment</label>
+                <textarea id="comment"
+                    placeholder="Write your experience..."></textarea>
+
+                <button class="main-button" id="submitButton"
+                    type="button" onclick="submitReview()">
+                    Submit Review
+                </button>
+
+                <button class="back-button" type="button"
+                    onclick="window.location.href='buyer-order-history.html'">
+                    Back to Orders
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const buyerId = localStorage.getItem("buyerId");
+
+        const orderId =
+            new URLSearchParams(window.location.search)
+                .get("order_id");
+
+        let selectedRating = 0;
+
+        const message = document.getElementById("message");
+        const productSelect =
+            document.getElementById("productSelect");
+
+        if (!buyerId) {
+            window.location.href = "buyer-login.html";
+        } else if (!orderId) {
+            message.textContent = "Order ID is missing.";
+        } else {
+            loadOrderItems();
+        }
+
+        document.querySelectorAll(".stars button").forEach(function(button) {
+            button.addEventListener("click", function() {
+                selectedRating = Number(button.dataset.rating);
+
+                document.querySelectorAll(".stars button")
+                    .forEach(function(star) {
+                        star.classList.toggle(
+                            "selected",
+                            Number(star.dataset.rating) <= selectedRating
+                        );
+                    });
+            });
+        });
+
+        async function loadOrderItems() {
+            try {
+                const response = await fetch(
+                    "/orders/" + encodeURIComponent(orderId) + "/items"
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    message.textContent =
+                        data.message || "Unable to load order items.";
+                    return;
+                }
+
+                const items = data.items || [];
+
+                if (items.length === 0) {
+                    message.textContent =
+                        "No products were found for this order.";
+                    return;
+                }
+
+                productSelect.innerHTML = "";
+
+                items.forEach(function(item) {
+                    const option = document.createElement("option");
+                    option.value = item.product_id;
+
+                    option.textContent =
+                        (item.name || item.product_name || 
+                         ("Product #" + item.product_id)) +
+                        " — Quantity: " + item.quantity;
+
+                    productSelect.appendChild(option);
+                });
+
+                message.textContent =
+                    "Select a purchased product and give your rating.";
+
+                document.getElementById("reviewForm").hidden = false;
+            } catch (error) {
+                console.error(error);
+                message.textContent =
+                    "Cannot connect to the backend. Check that the server is running.";
+            }
+        }
+
+        async function submitReview() {
+            if (!selectedRating) {
+                alert("Please select a star rating.");
+                return;
+            }
+
+            const productId = Number(productSelect.value);
+
+            if (!productId) {
+                alert("Please select a product.");
+                return;
+            }
+
+            const submitButton =
+                document.getElementById("submitButton");
+
+            submitButton.disabled = true;
+            submitButton.textContent = "Submitting...";
+
+            try {
+                const response = await fetch("/reviews", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        buyer_id: Number(buyerId),
+                        product_id: productId,
+                        rating: selectedRating,
+                        comment: document.getElementById("comment").value.trim()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    alert(data.message || "Unable to submit review.");
+                    return;
+                }
+
+                alert("Review added successfully!");
+
+                window.location.href = "buyer-order-history.html";
+            } catch (error) {
+                console.error(error);
+                alert("Cannot connect to the backend.");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "Submit Review";
+            }
+        }
+    </script>
+</body>
+</html>

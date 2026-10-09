@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Seller Orders - NivinMart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f5f7fb;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 40px auto;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .top-bar h2 {
+            margin: 0;
+        }
+
+        .back-button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background: #333;
+            color: white;
+            cursor: pointer;
+        }
+
+        .order-card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .order-card h3 {
+            margin-top: 0;
+        }
+
+        .order-card p {
+            margin: 8px 0;
+            color: #555;
+        }
+
+        .status-section {
+            margin-top: 20px;
+        }
+
+        .status-section label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .status-select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        .update-button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background: #111827;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .update-button:hover {
+            background: #1f2937;
+        }
+
+        #message {
+            text-align: center;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .no-orders {
+            background: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>NivinMart Seller Orders</h1>
+</header>
+
+<div class="container">
+
+    <div class="top-bar">
+        <h2>Incoming Orders</h2>
+
+        <button
+            class="back-button"
+            onclick="window.location.href='seller-dashboard.html'">
+            Back
+        </button>
+    </div>
+
+    <p id="message">Loading orders...</p>
+
+    <div id="ordersContainer"></div>
+
+</div>
+
+<script>
+
+    const sellerId = localStorage.getItem("sellerId");
+
+    if (!sellerId) {
+        window.location.href = "seller-login.html";
+    }
+
+
+    async function loadOrders() {
+
+        try {
+
+            const response = await fetch(
+                "http://localhost:5555/seller/orders?seller_id="
+                + sellerId
+            );
+
+            const data = await response.json();
+
+            const container =
+                document.getElementById("ordersContainer");
+
+            const message =
+                document.getElementById("message");
+
+            container.innerHTML = "";
+
+            if (!data.success) {
+
+                message.textContent =
+                    data.message || "Unable to load orders";
+
+                return;
+            }
+
+
+            if (!data.orders || data.orders.length === 0) {
+
+                message.textContent = "";
+
+                container.innerHTML =
+                    '<div class="no-orders">No orders found.</div>';
+
+                return;
+            }
+
+
+            message.textContent =
+                data.orders.length + " order(s) found";
+
+
+            data.orders.forEach(function(order) {
+
+                const card =
+                    document.createElement("div");
+
+                card.className = "order-card";
+
+
+                const title =
+                    document.createElement("h3");
+
+                title.textContent =
+                    "Order #" + order.id;
+
+
+                const buyer =
+                    document.createElement("p");
+
+                buyer.textContent =
+                    "Buyer ID: " + order.buyer_id;
+
+
+                const amount =
+                    document.createElement("p");
+
+                amount.textContent =
+                    "Total Amount: ₹" + order.total_amount;
+
+
+                const currentStatus =
+                    document.createElement("p");
+
+                currentStatus.textContent =
+                    "Current Status: " + order.status;
+
+
+                const date =
+                    document.createElement("p");
+
+                date.textContent =
+                    "Date: " + order.created_at;
+
+
+                const section =
+                    document.createElement("div");
+
+                section.className =
+                    "status-section";
+
+
+                const label =
+                    document.createElement("label");
+
+                label.textContent =
+                    "Update Status";
+
+
+                const select =
+                    document.createElement("select");
+
+                select.className =
+                    "status-select";
+
+
+                const statuses = [
+                    "Pending",
+                    "Confirmed",
+                    "Shipped",
+                    "Delivered"
+                ];
+
+
+                statuses.forEach(function(status) {
+
+                    const option =
+                        document.createElement("option");
+
+                    option.value = status;
+                    option.textContent = status;
+
+                    if (status === order.status) {
+                        option.selected = true;
+                    }
+
+                    select.appendChild(option);
+                });
+
+
+                const button =
+                    document.createElement("button");
+
+                button.className =
+                    "update-button";
+
+                button.textContent =
+                    "Update Status";
+
+
+                button.onclick = function() {
+
+                    updateStatus(
+                        order.id,
+                        select.value,
+                        order.status
+                    );
+                };
+
+
+                section.appendChild(label);
+                section.appendChild(select);
+                section.appendChild(button);
+
+
+                card.appendChild(title);
+                card.appendChild(buyer);
+                card.appendChild(amount);
+                card.appendChild(currentStatus);
+                card.appendChild(date);
+                card.appendChild(section);
+
+
+                container.appendChild(card);
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            document.getElementById("message").textContent =
+                "Cannot connect to backend";
+        }
+    }
+
+
+    async function updateStatus(
+        orderId,
+        newStatus,
+        currentStatus
+    ) {
+
+        if (newStatus === currentStatus) {
+
+            alert("Please select a new status");
+
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "http://localhost:5555/seller/orders/"
+                    + orderId
+                    + "/status",
+                    {
+                        method: "PUT",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            status: newStatus
+                        })
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (data.success) {
+
+                alert(
+                    "Order status updated successfully"
+                );
+
+                loadOrders();
+
+            }
+            else {
+
+                alert(
+                    data.message ||
+                    "Unable to update status"
+                );
+            }
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Cannot connect to backend"
+            );
+        }
+    }
+
+
+    loadOrders();
+
+</script>
+
+</body>
+</html>

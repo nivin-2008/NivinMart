@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Orders - NivinMart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 40px auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .back-button {
+            display: block;
+            margin: 0 auto 25px auto;
+            padding: 11px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #333;
+            color: white;
+            cursor: pointer;
+        }
+
+        .order {
+            background: white;
+            padding: 18px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .order p {
+            margin: 7px 0;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>All Orders</h1>
+
+    <button
+        class="back-button"
+        onclick="window.location.href='admin-dashboard.html'">
+        Back to Admin Dashboard
+    </button>
+
+    <div id="orders"></div>
+
+    <p id="message"></p>
+
+</div>
+
+<script>
+
+    const adminId = localStorage.getItem("adminId");
+
+    if (!adminId) {
+        window.location.href = "admin-login.html";
+    }
+
+    async function loadOrders() {
+
+        try {
+
+            const response = await fetch("/admin/orders");
+
+            const data = await response.json();
+
+            const ordersDiv =
+                document.getElementById("orders");
+
+            const message =
+                document.getElementById("message");
+
+            ordersDiv.innerHTML = "";
+            message.innerText = "";
+
+            if (!data.success) {
+                message.innerText =
+                    data.message || "Failed to load orders.";
+                return;
+            }
+
+            if (!data.orders || data.orders.length === 0) {
+                message.innerText = "No orders found.";
+                return;
+            }
+
+            data.orders.forEach(function(order) {
+
+                const div = document.createElement("div");
+
+                div.className = "order";
+
+                div.innerHTML = `
+                    <p><strong>Order ID:</strong> ${order.id}</p>
+
+                    <p>
+                        <strong>Buyer ID:</strong>
+                        ${order.buyer_id}
+                    </p>
+
+                    <p>
+                        <strong>Status:</strong>
+                        ${order.status}
+                    </p>
+
+                    <p>
+                        <strong>Total Amount:</strong>
+                        ₹${order.total_amount}
+                    </p>
+                `;
+
+                ordersDiv.appendChild(div);
+            });
+
+        } catch (error) {
+
+            document.getElementById("message").innerText =
+                "Server error.";
+        }
+    }
+
+    loadOrders();
+
+</script>
+
+</body>
+</html>

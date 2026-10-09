@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History - NivinMart</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f5f7fb;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 28px;
+        }
+
+        .welcome {
+            font-size: 16px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 40px auto;
+        }
+
+        .page-title {
+            margin-bottom: 25px;
+            font-size: 32px;
+            color: #222;
+        }
+
+        .back-button {
+            margin-bottom: 25px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #111827;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .back-button:hover {
+            background: #1f2937;
+        }
+
+        .order {
+            background: white;
+            padding: 22px;
+            margin-bottom: 20px;
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .order p {
+            margin: 10px 0;
+            color: #444;
+        }
+
+        .status {
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+
+        .review-button {
+            margin-top: 15px;
+            padding: 11px 18px;
+            border: none;
+            border-radius: 8px;
+            background: #111827;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .review-button:hover {
+            background: #1f2937;
+        }
+
+        .empty {
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+            margin-top: 30px;
+        }
+
+        #message {
+            margin-bottom: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>NivinMart</h1>
+    <div class="welcome" id="welcomeMessage"></div>
+</header>
+
+<div class="container">
+
+    <h2 class="page-title">Order History</h2>
+
+    <button
+        class="back-button"
+        onclick="window.location.href='buyer-products.html'">
+        Back to Products
+    </button>
+
+    <p id="message">Loading orders...</p>
+
+    <div id="ordersContainer"></div>
+
+</div>
+
+<script>
+
+    const buyerId = localStorage.getItem("buyerId");
+    const buyerName = localStorage.getItem("buyerName");
+
+    if (!buyerId) {
+        window.location.href = "buyer-login.html";
+    }
+
+    document.getElementById("welcomeMessage").textContent =
+        "Welcome, " + (buyerName || "Buyer");
+
+
+    async function loadOrders() {
+
+        try {
+
+            const response = await fetch(
+                "/orders?buyer_id=" + buyerId
+            );
+
+            const data = await response.json();
+
+            const container =
+                document.getElementById("ordersContainer");
+
+            const message =
+                document.getElementById("message");
+
+            container.innerHTML = "";
+
+
+            if (!data.success) {
+
+                message.textContent =
+                    data.message ||
+                    "Unable to load orders.";
+
+                return;
+            }
+
+
+            if (!data.orders ||
+                data.orders.length === 0) {
+
+                message.textContent = "";
+
+                container.innerHTML =
+                    '<p class="empty">No orders found.</p>';
+
+                return;
+            }
+
+
+            message.textContent =
+                data.orders.length +
+                " order(s) found";
+
+
+            data.orders.forEach(function(order) {
+
+                const div =
+                    document.createElement("div");
+
+                div.className = "order";
+
+
+                const orderId =
+                    document.createElement("p");
+
+                orderId.innerHTML =
+                    "<strong>Order ID:</strong> " +
+                    order.id;
+
+
+                const amount =
+                    document.createElement("p");
+
+                amount.innerHTML =
+                    "<strong>Total Amount:</strong> ₹" +
+                    Number(
+                        order.total_amount
+                    ).toFixed(2);
+
+
+                const status =
+                    document.createElement("p");
+
+                status.innerHTML =
+                    "<strong>Status:</strong> " +
+                    '<span class="status">' +
+                    order.status +
+                    "</span>";
+
+
+                const date =
+                    document.createElement("p");
+
+                date.innerHTML =
+                    "<strong>Order Date:</strong> " +
+                    order.created_at;
+
+
+                div.appendChild(orderId);
+                div.appendChild(amount);
+                div.appendChild(status);
+                div.appendChild(date);
+
+
+                if (order.status === "Delivered") {
+
+                    const reviewButton =
+                        document.createElement("button");
+
+                    reviewButton.className =
+                        "review-button";
+
+                    reviewButton.textContent =
+                        "Write Review ⭐";
+
+
+                    reviewButton.onclick =
+                        function() {
+
+                            window.location.href =
+                                "buyer-review.html?order_id="
+                                + order.id;
+                        };
+
+
+                    div.appendChild(reviewButton);
+                }
+
+
+                container.appendChild(div);
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            document.getElementById("message").textContent =
+                "Cannot connect to backend.";
+        }
+    }
+
+
+    loadOrders();
+
+</script>
+
+</body>
+</html>

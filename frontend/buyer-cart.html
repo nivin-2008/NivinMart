@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Cart - NivinMart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f5f7fb;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 28px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 40px auto;
+        }
+
+        .title {
+            font-size: 32px;
+            margin-bottom: 25px;
+        }
+
+        .cart-item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 14px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-info h2 {
+            margin-bottom: 8px;
+        }
+
+        .item-info p {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .quantity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quantity button {
+            width: 35px;
+            height: 35px;
+            border: none;
+            border-radius: 6px;
+            background: #111827;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .quantity span {
+            min-width: 25px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .remove-btn {
+            border: none;
+            background: #dc2626;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        .summary {
+            background: white;
+            padding: 25px;
+            border-radius: 14px;
+            margin-top: 25px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+        }
+
+        .summary h2 {
+            margin-bottom: 15px;
+        }
+
+        .total {
+            font-size: 25px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .order-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #111827;
+            color: white;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        #message {
+            margin-bottom: 20px;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>NivinMart</h1>
+        <div id="buyerName"></div>
+    </header>
+
+    <div class="container">
+
+        <h2 class="title">My Cart</h2>
+
+        <p id="message">Loading cart...</p>
+
+        <div id="cartContainer"></div>
+
+        <div class="summary">
+
+            <h2>Order Summary</h2>
+
+            <div class="total" id="totalAmount">
+                Total: ₹0
+            </div>
+
+            <button class="order-btn" onclick="placeOrder()">
+                Place Order
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const buyerId = localStorage.getItem("buyerId");
+        const buyerName = localStorage.getItem("buyerName");
+
+        if (!buyerId) {
+            window.location.href = "buyer-login.html";
+        }
+
+        document.getElementById("buyerName").textContent =
+            "Welcome, " + (buyerName || "Buyer");
+
+
+        async function loadCart() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        "http://localhost:5555/cart?buyer_id=" +
+                        buyerId
+                    );
+
+                const data = await response.json();
+
+                const container =
+                    document.getElementById("cartContainer");
+
+                const message =
+                    document.getElementById("message");
+
+                if (!data.success) {
+
+                    message.textContent =
+                        data.message || "Unable to load cart";
+
+                    return;
+                }
+
+                message.textContent = "";
+
+                container.innerHTML = "";
+
+                const items =
+                    data.cart || data.items || [];
+
+                if (items.length === 0) {
+
+                    message.textContent =
+                        "Your cart is empty.";
+
+                    document.getElementById("totalAmount").textContent =
+                        "Total: ₹0";
+
+                    return;
+                }
+
+                let total = 0;
+
+                items.forEach(item => {
+
+                    const price =
+                        Number(item.price || 0);
+
+                    const quantity =
+                        Number(item.quantity || 1);
+
+                    total += price * quantity;
+
+                    const div =
+                        document.createElement("div");
+
+                    div.className = "cart-item";
+
+                    div.innerHTML = `
+                        <div class="item-info">
+                            <h2>${item.name || item.product_name}</h2>
+
+                            <p>
+                                Price: ₹${price}
+                            </p>
+
+                            <p>
+                                Subtotal: ₹${price * quantity}
+                            </p>
+                        </div>
+
+                        <div class="quantity">
+
+                            <button
+                                onclick="changeQuantity(
+                                    ${item.product_id},
+                                    ${quantity - 1}
+                                )">
+                                -
+                            </button>
+
+                            <span>${quantity}</span>
+
+                            <button
+                                onclick="changeQuantity(
+                                    ${item.product_id},
+                                    ${quantity + 1}
+                                )">
+                                +
+                            </button>
+
+                        </div>
+
+                        <button
+                            class="remove-btn"
+                            onclick="removeItem(${item.product_id})">
+                            Remove
+                        </button>
+                    `;
+
+                    container.appendChild(div);
+
+                });
+
+                document.getElementById("totalAmount").textContent =
+                    "Total: ₹" + total;
+
+            } catch (error) {
+
+                console.error(error);
+
+                document.getElementById("message").textContent =
+                    "Cannot connect to backend";
+            }
+        }
+
+
+        async function changeQuantity(productId, quantity) {
+
+            if (quantity < 1) {
+                await removeItem(productId);
+                return;
+            }
+
+            try {
+
+                const response =
+                    await fetch(
+                        "http://localhost:5555/cart/update",
+                        {
+                            method: "PUT",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                buyer_id: Number(buyerId),
+                                product_id: Number(productId),
+                                quantity: Number(quantity)
+                            })
+                        }
+                    );
+
+                const data = await response.json();
+
+                if (data.success) {
+                    loadCart();
+                } else {
+                    alert(
+                        data.message ||
+                        "Unable to update cart"
+                    );
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert("Cannot connect to backend");
+            }
+        }
+
+
+        async function removeItem(productId) {
+
+            try {
+
+                const response =
+                    await fetch(
+                        "http://localhost:5555/cart/remove",
+                        {
+                            method: "DELETE",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                buyer_id: Number(buyerId),
+                                product_id: Number(productId)
+                            })
+                        }
+                    );
+
+                const data = await response.json();
+
+                if (data.success) {
+
+                    loadCart();
+
+                } else {
+
+                    alert(
+                        data.message ||
+                        "Unable to remove item"
+                    );
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert("Cannot connect to backend");
+            }
+        }
+
+
+        function placeOrder() {
+
+            window.location.href =
+                "buyer-place-order.html";
+        }
+
+
+        loadCart();
+
+    </script>
+
+</body>
+</html>

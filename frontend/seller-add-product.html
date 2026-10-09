@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Product - NivinMart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            width: 450px;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 18px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background: #333;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        .view-button {
+            background: #555;
+        }
+
+        .view-button:hover {
+            background: #333;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Add Product</h1>
+
+    <form id="productForm">
+
+        <label for="name">Product Name</label>
+        <input type="text" id="name" required>
+
+        <label for="description">Description</label>
+        <textarea id="description"></textarea>
+
+        <label for="price">Price</label>
+        <input type="number" id="price" step="0.01" min="0" required>
+
+        <label for="stock">Stock</label>
+        <input type="number" id="stock" min="0" required>
+
+        <button type="submit">
+            Add Product
+        </button>
+
+    </form>
+
+    <button
+        class="view-button"
+        onclick="window.location.href='seller-products.html'">
+        View My Products
+    </button>
+
+    <p id="message"></p>
+
+</div>
+
+<script>
+
+    const sellerId = localStorage.getItem("sellerId");
+
+    if (!sellerId) {
+        window.location.href = "seller-login.html";
+    }
+
+    document.getElementById("productForm").addEventListener(
+        "submit",
+        async function(e) {
+
+            e.preventDefault();
+
+            const product = {
+
+                seller_id: Number(sellerId),
+
+                name:
+                    document.getElementById("name").value.trim(),
+
+                description:
+                    document.getElementById("description").value.trim(),
+
+                price:
+                    Number(
+                        document.getElementById("price").value
+                    ),
+
+                stock:
+                    Number(
+                        document.getElementById("stock").value
+                    )
+            };
+
+            try {
+
+                const response = await fetch("/products", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(product)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+
+                    document.getElementById("message").innerText =
+                        "Product added successfully!";
+
+                    document.getElementById("productForm").reset();
+
+                    setTimeout(function() {
+
+                        window.location.href =
+                            "seller-dashboard.html";
+
+                    }, 1000);
+
+                } else {
+
+                    document.getElementById("message").innerText =
+                        data.message || "Failed to add product";
+                }
+
+            } catch (error) {
+
+                document.getElementById("message").innerText =
+                    "Server error";
+            }
+        }
+    );
+
+</script>
+
+</body>
+</html>

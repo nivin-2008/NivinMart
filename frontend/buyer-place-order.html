@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place Order - NivinMart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f5f7fb;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 20px 40px;
+        }
+
+        header h1 {
+            font-size: 28px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            margin: 40px auto;
+        }
+
+        .box {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .total {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .confirm {
+            margin-top: 25px;
+            padding: 14px;
+            background: #f3f4f6;
+            border-radius: 10px;
+        }
+
+        .confirm input {
+            margin-right: 8px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 9px;
+            background: #111827;
+            color: white;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1f2937;
+        }
+
+        #message {
+            margin-top: 20px;
+            text-align: center;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>NivinMart</h1>
+    </header>
+
+    <div class="container">
+
+        <div class="box">
+
+            <h2>Order Summary</h2>
+
+            <div id="itemsContainer">
+                Loading cart...
+            </div>
+
+            <div class="total">
+                <span>Total</span>
+                <span id="totalAmount">₹0</span>
+            </div>
+
+            <div class="confirm">
+                <label>
+                    <input type="checkbox" id="confirmOrder">
+                    I confirm this order
+                </label>
+            </div>
+
+            <button onclick="placeOrder()">
+                Place Order
+            </button>
+
+            <p id="message"></p>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const buyerId = localStorage.getItem("buyerId");
+
+        if (!buyerId) {
+            window.location.href = "buyer-login.html";
+        }
+
+        async function loadCart() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        "http://localhost:5555/cart?buyer_id=" + buyerId
+                    );
+
+                const data = await response.json();
+
+                const container =
+                    document.getElementById("itemsContainer");
+
+                if (!data.success) {
+                    container.textContent =
+                        data.message || "Unable to load cart";
+                    return;
+                }
+
+                const items =
+                    data.cart || data.items || [];
+
+                if (items.length === 0) {
+                    container.textContent = "Your cart is empty.";
+                    document.getElementById("totalAmount").textContent = "₹0";
+                    return;
+                }
+
+                container.innerHTML = "";
+
+                let total = 0;
+
+                items.forEach(item => {
+
+                    const name =
+                        item.name || item.product_name || "Product";
+
+                    const price =
+                        Number(item.price || 0);
+
+                    const quantity =
+                        Number(item.quantity || 1);
+
+                    const subtotal =
+                        price * quantity;
+
+                    total += subtotal;
+
+                    const div =
+                        document.createElement("div");
+
+                    div.className = "item";
+
+                    div.innerHTML = `
+                        <span>
+                            ${name} × ${quantity}
+                        </span>
+
+                        <span>
+                            ₹${subtotal}
+                        </span>
+                    `;
+
+                    container.appendChild(div);
+                });
+
+                document.getElementById("totalAmount").textContent =
+                    "₹" + total;
+
+            } catch (error) {
+
+                console.error(error);
+
+                document.getElementById("itemsContainer").textContent =
+                    "Cannot connect to backend";
+            }
+        }
+
+
+        async function placeOrder() {
+
+            const confirmed =
+                document.getElementById("confirmOrder").checked;
+
+            const message =
+                document.getElementById("message");
+
+            if (!confirmed) {
+
+                message.textContent =
+                    "Please confirm your order.";
+
+                return;
+            }
+
+            message.textContent =
+                "Placing order...";
+
+            try {
+
+                const response =
+                    await fetch(
+                        "http://localhost:5555/orders",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                buyer_id: Number(buyerId)
+                            })
+                        }
+                    );
+
+                const data = await response.json();
+
+                if (data.success) {
+
+                    message.textContent =
+                        "Order placed successfully! Order ID: " +
+                        data.order_id;
+
+                    setTimeout(() => {
+                        window.location.href =
+                            "buyer-products.html";
+                    }, 1500);
+
+                } else {
+
+                    message.textContent =
+                        data.message ||
+                        "Unable to place order";
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                message.textContent =
+                    "Cannot connect to backend";
+            }
+        }
+
+
+        loadCart();
+
+    </script>
+
+</body>
+</html>

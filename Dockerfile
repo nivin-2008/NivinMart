@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
 
-RUN apt-get install -y build-essential cmake pkg-config libdrogon-dev libjsoncpp-dev libsodium-dev libpq-dev uuid-dev zlib1g-dev ca-certificates
+RUN apt-get install -y --no-install-recommends build-essential cmake pkg-config libdrogon-dev libjsoncpp-dev libsodium-dev libpq-dev uuid-dev zlib1g-dev libsqlite3-dev ca-certificates
 
 WORKDIR /app
 

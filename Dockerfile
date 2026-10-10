@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake pkg-config \
-    libdrogon-dev libjsoncpp-dev libsodium-dev libpq-dev \
+    libdrogon-dev libjsoncpp-dev libsodium-dev libpq-dev uuid-dev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

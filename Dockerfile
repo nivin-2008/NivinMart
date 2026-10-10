@@ -10,7 +10,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMYSQL_LIB_DIR=/usr/lib/x86_64-linux-gnu
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMYSQL_INCLUDE_DIR=/usr/include/mariadb -DMYSQL_LIB_DIR=/usr/lib/x86_64-linux-gnu -DMYSQL_LIBRARY=/usr/lib/x86_64-linux-gnu/libmariadb.so -DMYSQL_LIB=/usr/lib/x86_64-linux-gnu/libmariadb.so
 
 RUN cmake --build build --config Release -j2
 

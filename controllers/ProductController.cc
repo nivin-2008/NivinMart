@@ -50,7 +50,7 @@ void ProductController::getProducts(
         {
             Json::Value responseJson;
             responseJson["success"] = false;
-            responseJson["message"] = "Database error";
+            responseJson["message"] = std::string("Database error: ") + e.base().what();
 
             LOG_ERROR << e.base().what();
 

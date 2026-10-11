@@ -26,246 +26,290 @@ void OrderController::placeOrder(
     auto dbClient = app().getDbClient();
 
 
+    // Create only the two tables required by Place Order if they are missing.
+    // Run this asynchronously after the database client is available.
     dbClient->execSqlAsync(
-        "SELECT ci.product_id, ci.quantity, p.price "
-        "FROM cart c "
-        "JOIN cart_items ci ON c.id = ci.cart_id "
-        "JOIN products p ON p.id = ci.product_id "
-        "WHERE c.buyer_id = $1 "
-        "ORDER BY ci.id",
-
+        "CREATE TABLE IF NOT EXISTS orders ("
+        "id SERIAL PRIMARY KEY, "
+        "buyer_id INTEGER NOT NULL, "
+        "total_amount NUMERIC(12,2) NOT NULL, "
+        "status VARCHAR(50) NOT NULL DEFAULT 'Pending', "
+        "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        ")",
         [callback, buyerId, dbClient]
-        (const drogon::orm::Result &result)
+        (const drogon::orm::Result &)
         {
-            if (result.empty())
-            {
-                Json::Value response;
-
-                response["success"] = false;
-                response["message"] = "Cart is empty";
-
-                callback(
-                    HttpResponse::newHttpJsonResponse(
-                        response));
-
-                return;
-            }
-
-            double totalAmount = 0.0;
-
-            for (const auto &row : result)
-            {
-                double price =
-                    row["price"].as<double>();
-
-                int quantity =
-                    row["quantity"].as<int>();
-
-                totalAmount += price * quantity;
-            }
-
-
             dbClient->execSqlAsync(
-                "INSERT INTO orders "
-                "(buyer_id, total_amount, status) "
-                "VALUES ($1, $2, 'Pending') "
-                "RETURNING id",
-
-                [callback,
-                 buyerId,
-                 result,
-                 totalAmount,
-                 dbClient]
-                (const drogon::orm::Result &orderResult)
+                "CREATE TABLE IF NOT EXISTS order_items ("
+                "id SERIAL PRIMARY KEY, "
+                "order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE, "
+                "product_id INTEGER NOT NULL, "
+                "quantity INTEGER NOT NULL CHECK (quantity > 0), "
+                "price NUMERIC(12,2) NOT NULL"
+                ")",
+                [callback, buyerId, dbClient]
+                (const drogon::orm::Result &)
                 {
-                    if (orderResult.empty())
+                dbClient->execSqlAsync(
+                    "SELECT ci.product_id, ci.quantity, p.price "
+                    "FROM cart c "
+                    "JOIN cart_items ci ON c.id = ci.cart_id "
+                    "JOIN products p ON p.id = ci.product_id "
+                    "WHERE c.buyer_id = $1 "
+                    "ORDER BY ci.id",
+            
+                    [callback, buyerId, dbClient]
+                    (const drogon::orm::Result &result)
                     {
-                        Json::Value response;
-
-                        response["success"] = false;
-                        response["message"] =
-                            "Could not create order";
-
-                        callback(
-                            HttpResponse::newHttpJsonResponse(
-                                response));
-
-                        return;
-                    }
-
-                    int orderId =
-                        orderResult[0]["id"].as<int>();
-
-
-                    auto insertItem =
-                        std::make_shared<
-                            std::function<void(size_t)>>();
-
-
-                    *insertItem =
-                        [callback,
-                         buyerId,
-                         result,
-                         totalAmount,
-                         orderId,
-                         dbClient,
-                         insertItem]
-                        (size_t index)
-                    {
-                        if (index >= result.size())
+                        if (result.empty())
                         {
-                            dbClient->execSqlAsync(
-                                "DELETE FROM cart_items "
-                                "WHERE cart_id = "
-                                "(SELECT id FROM cart "
-                                "WHERE buyer_id = $1)",
-
-                                [callback,
-                                 orderId,
-                                 totalAmount]
-                                (const drogon::orm::Result &)
-                                {
-                                    Json::Value response;
-
-                                    response["success"] =
-                                        true;
-
-                                    response["message"] =
-                                        "Order placed successfully";
-
-                                    response["order_id"] =
-                                        orderId;
-
-                                    response["total_amount"] =
-                                        totalAmount;
-
-                                    callback(
-                                        HttpResponse::
-                                        newHttpJsonResponse(
-                                            response));
-                                },
-
-                                [callback]
-                                (const drogon::orm::DrogonDbException &e)
-                                {
-                                    Json::Value response;
-
-                                    response["success"] =
-                                        false;
-
-                                    response["message"] =
-                                        "Order created but cart could not be cleared";
-
-                                    LOG_ERROR
-                                        << e.base().what();
-
-                                    callback(
-                                        HttpResponse::
-                                        newHttpJsonResponse(
-                                            response));
-                                },
-
-                                buyerId);
-
+                            Json::Value response;
+            
+                            response["success"] = false;
+                            response["message"] = "Cart is empty";
+            
+                            callback(
+                                HttpResponse::newHttpJsonResponse(
+                                    response));
+            
                             return;
                         }
-
-
-                        const auto &row =
-                            result[index];
-
-
-                        int productId =
-                            row["product_id"].as<int>();
-
-                        int quantity =
-                            row["quantity"].as<int>();
-
-                        double price =
-                            row["price"].as<double>();
-
-
+            
+                        double totalAmount = 0.0;
+            
+                        for (const auto &row : result)
+                        {
+                            double price =
+                                row["price"].as<double>();
+            
+                            int quantity =
+                                row["quantity"].as<int>();
+            
+                            totalAmount += price * quantity;
+                        }
+            
+            
                         dbClient->execSqlAsync(
-                            "INSERT INTO order_items "
-                            "(order_id, product_id, quantity, price) "
-                            "VALUES ($1, $2, $3, $4)",
-
-                            [insertItem, index]
-                            (const drogon::orm::Result &)
+                            "INSERT INTO orders "
+                            "(buyer_id, total_amount, status) "
+                            "VALUES ($1, $2, 'Pending') "
+                            "RETURNING id",
+            
+                            [callback,
+                             buyerId,
+                             result,
+                             totalAmount,
+                             dbClient]
+                            (const drogon::orm::Result &orderResult)
                             {
-                                (*insertItem)(index + 1);
+                                if (orderResult.empty())
+                                {
+                                    Json::Value response;
+            
+                                    response["success"] = false;
+                                    response["message"] =
+                                        "Could not create order";
+            
+                                    callback(
+                                        HttpResponse::newHttpJsonResponse(
+                                            response));
+            
+                                    return;
+                                }
+            
+                                int orderId =
+                                    orderResult[0]["id"].as<int>();
+            
+            
+                                auto insertItem =
+                                    std::make_shared<
+                                        std::function<void(size_t)>>();
+            
+            
+                                *insertItem =
+                                    [callback,
+                                     buyerId,
+                                     result,
+                                     totalAmount,
+                                     orderId,
+                                     dbClient,
+                                     insertItem]
+                                    (size_t index)
+                                {
+                                    if (index >= result.size())
+                                    {
+                                        dbClient->execSqlAsync(
+                                            "DELETE FROM cart_items "
+                                            "WHERE cart_id = "
+                                            "(SELECT id FROM cart "
+                                            "WHERE buyer_id = $1)",
+            
+                                            [callback,
+                                             orderId,
+                                             totalAmount]
+                                            (const drogon::orm::Result &)
+                                            {
+                                                Json::Value response;
+            
+                                                response["success"] =
+                                                    true;
+            
+                                                response["message"] =
+                                                    "Order placed successfully";
+            
+                                                response["order_id"] =
+                                                    orderId;
+            
+                                                response["total_amount"] =
+                                                    totalAmount;
+            
+                                                callback(
+                                                    HttpResponse::
+                                                    newHttpJsonResponse(
+                                                        response));
+                                            },
+            
+                                            [callback]
+                                            (const drogon::orm::DrogonDbException &e)
+                                            {
+                                                Json::Value response;
+            
+                                                response["success"] =
+                                                    false;
+            
+                                                response["message"] =
+                                                    "Order created but cart could not be cleared";
+            
+                                                LOG_ERROR
+                                                    << e.base().what();
+            
+                                                callback(
+                                                    HttpResponse::
+                                                    newHttpJsonResponse(
+                                                        response));
+                                            },
+            
+                                            buyerId);
+            
+                                        return;
+                                    }
+            
+            
+                                    const auto &row =
+                                        result[index];
+            
+            
+                                    int productId =
+                                        row["product_id"].as<int>();
+            
+                                    int quantity =
+                                        row["quantity"].as<int>();
+            
+                                    double price =
+                                        row["price"].as<double>();
+            
+            
+                                    dbClient->execSqlAsync(
+                                        "INSERT INTO order_items "
+                                        "(order_id, product_id, quantity, price) "
+                                        "VALUES ($1, $2, $3, $4)",
+            
+                                        [insertItem, index]
+                                        (const drogon::orm::Result &)
+                                        {
+                                            (*insertItem)(index + 1);
+                                        },
+            
+                                        [callback]
+                                        (const drogon::orm::DrogonDbException &e)
+                                        {
+                                            Json::Value response;
+            
+                                            response["success"] =
+                                                false;
+            
+                                            response["message"] =
+                                                "Could not save order items";
+            
+                                            LOG_ERROR
+                                                << e.base().what();
+            
+                                            callback(
+                                                HttpResponse::
+                                                newHttpJsonResponse(
+                                                    response));
+                                        },
+            
+                                        orderId,
+                                        productId,
+                                        quantity,
+                                        price);
+                                };
+            
+            
+                                (*insertItem)(0);
                             },
-
+            
                             [callback]
                             (const drogon::orm::DrogonDbException &e)
                             {
                                 Json::Value response;
-
-                                response["success"] =
-                                    false;
-
+            
+                                response["success"] = false;
                                 response["message"] =
-                                    "Could not save order items";
-
+                                    std::string("Could not create order: ") + e.base().what();
+            
                                 LOG_ERROR
                                     << e.base().what();
-
+            
                                 callback(
-                                    HttpResponse::
-                                    newHttpJsonResponse(
+                                    HttpResponse::newHttpJsonResponse(
                                         response));
                             },
-
-                            orderId,
-                            productId,
-                            quantity,
-                            price);
-                    };
-
-
-                    (*insertItem)(0);
+            
+                            buyerId,
+                            totalAmount);
+                    },
+            
+            
+                    [callback]
+                    (const drogon::orm::DrogonDbException &e)
+                    {
+                        Json::Value response;
+            
+                        response["success"] = false;
+                        response["message"] =
+                            "Could not read cart";
+            
+                        LOG_ERROR
+                            << e.base().what();
+            
+                        callback(
+                            HttpResponse::newHttpJsonResponse(
+                                response));
+                    },
+            
+                    buyerId);
                 },
-
                 [callback]
                 (const drogon::orm::DrogonDbException &e)
                 {
+                    LOG_ERROR << "Could not prepare order_items table: " << e.base().what();
                     Json::Value response;
-
                     response["success"] = false;
-                    response["message"] =
-                        std::string("Could not create order: ") + e.base().what();
-
-                    LOG_ERROR
-                        << e.base().what();
-
-                    callback(
-                        HttpResponse::newHttpJsonResponse(
-                            response));
-                },
-
-                buyerId,
-                totalAmount);
+                    response["message"] = "Could not prepare order storage";
+                    callback(HttpResponse::newHttpJsonResponse(response));
+                });
         },
-
-
         [callback]
         (const drogon::orm::DrogonDbException &e)
         {
+            LOG_ERROR << "Could not prepare orders table: " << e.base().what();
             Json::Value response;
-
             response["success"] = false;
-            response["message"] =
-                "Could not read cart";
-
-            LOG_ERROR
-                << e.base().what();
-
-            callback(
-                HttpResponse::newHttpJsonResponse(
-                    response));
-        },
-
-        buyerId);
+            response["message"] = "Could not prepare order storage";
+            callback(HttpResponse::newHttpJsonResponse(response));
+        });
 }
 
 

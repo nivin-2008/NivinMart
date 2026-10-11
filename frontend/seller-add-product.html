@@ -103,6 +103,10 @@
         <label for="stock">Stock</label>
         <input type="number" id="stock" min="0" required>
 
+        <label for="image">Product Photo (JPG/PNG/WEBP, max 1 MB)</label>
+        <input type="file" id="image" accept="image/jpeg,image/png,image/webp">
+        <img id="imagePreview" alt="Photo preview" style="display:none;width:100%;max-height:220px;object-fit:contain;margin-bottom:16px;">
+
         <button type="submit">
             Add Product
         </button>
@@ -127,15 +131,45 @@
         window.location.href = "seller-login.html";
     }
 
+    document.getElementById("image").addEventListener("change", function() {
+        const file = this.files[0];
+        const preview = document.getElementById("imagePreview");
+        if (!file) { preview.style.display = "none"; return; }
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 1024 * 1024) {
+            alert("Choose a JPG, PNG or WEBP photo smaller than 1 MB.");
+            this.value = "";
+            preview.style.display = "none";
+            return;
+        }
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = "block";
+    });
+
     document.getElementById("productForm").addEventListener(
         "submit",
         async function(e) {
 
             e.preventDefault();
 
+            const imageFile = document.getElementById("image").files[0];
+            let imageData = "";
+            if (imageFile) {
+                if (imageFile.size > 1024 * 1024) {
+                    document.getElementById("message").innerText = "Photo must be smaller than 1 MB.";
+                    return;
+                }
+                imageData = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(imageFile);
+                });
+            }
+
             const product = {
 
                 seller_id: Number(sellerId),
+                image_data: imageData,
 
                 name:
                     document.getElementById("name").value.trim(),

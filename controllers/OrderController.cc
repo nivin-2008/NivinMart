@@ -233,7 +233,7 @@ void OrderController::placeOrder(
 
                     response["success"] = false;
                     response["message"] =
-                        "Could not create order";
+                        std::string("Could not create order: ") + e.base().what();
 
                     LOG_ERROR
                         << e.base().what();

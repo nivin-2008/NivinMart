@@ -119,6 +119,15 @@
             flex-direction: column;
         }
 
+        .product-image {
+            width: 100%;
+            height: 190px;
+            object-fit: contain;
+            background: #f9fafb;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
         .product-card h2 {
             font-size: 22px;
             margin-bottom: 12px;
@@ -355,6 +364,15 @@
         products.forEach(function(product) {
             const card = document.createElement("div");
             card.className = "product-card";
+
+            // Product photo
+            if (product.image_data) {
+                const image = document.createElement("img");
+                image.className = "product-image";
+                image.src = product.image_data;
+                image.alt = product.name || "Product photo";
+                card.appendChild(image);
+            }
 
             // Product name
             const title = document.createElement("h2");

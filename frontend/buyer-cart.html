@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -47,8 +48,7 @@
             padding: 20px;
             margin-bottom: 15px;
             border-radius: 14px;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
-
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -105,7 +105,7 @@
             padding: 25px;
             border-radius: 14px;
             margin-top: 25px;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
         }
 
         .summary h2 {
@@ -133,41 +133,54 @@
             margin-bottom: 20px;
             color: #555;
         }
+
+        @media (max-width: 650px) {
+            header {
+                padding: 18px;
+            }
+
+            .container {
+                width: 92%;
+                margin: 25px auto;
+            }
+
+            .cart-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .title {
+                font-size: 28px;
+            }
+        }
     </style>
 </head>
 
 <body>
-
     <header>
         <h1>NivinMart</h1>
         <div id="buyerName"></div>
     </header>
 
     <div class="container">
-
         <h2 class="title">My Cart</h2>
-
         <p id="message">Loading cart...</p>
-
         <div id="cartContainer"></div>
 
         <div class="summary">
-
             <h2>Order Summary</h2>
-
-            <div class="total" id="totalAmount">
-                Total: ₹0
-            </div>
+            <div class="total" id="totalAmount">Total: ₹0</div>
 
             <button class="order-btn" onclick="placeOrder()">
                 Place Order
             </button>
-
         </div>
-
     </div>
 
     <script>
+        // Frontend and backend use the same Render service.
+        const API_BASE = "";
 
         const buyerId = localStorage.getItem("buyerId");
         const buyerName = localStorage.getItem("buyerName");
@@ -179,228 +192,183 @@
         document.getElementById("buyerName").textContent =
             "Welcome, " + (buyerName || "Buyer");
 
+        async function apiFetch(path, options = {}) {
+            return await fetch(API_BASE + path, options);
+        }
 
         async function loadCart() {
+            const container = document.getElementById("cartContainer");
+            const message = document.getElementById("message");
+            const totalAmount = document.getElementById("totalAmount");
+
+            message.textContent = "Loading cart...";
+            container.innerHTML = "";
+            totalAmount.textContent = "Total: ₹0";
 
             try {
+                const response = await apiFetch(
+                    "/cart?buyer_id=" + encodeURIComponent(buyerId)
+                );
 
-                const response =
-                    await fetch(
-                        "http://localhost:5555/cart?buyer_id=" +
-                        buyerId
-                    );
+                if (!response.ok) {
+                    throw new Error("Cart request failed: " + response.status);
+                }
 
                 const data = await response.json();
 
-                const container =
-                    document.getElementById("cartContainer");
-
-                const message =
-                    document.getElementById("message");
-
                 if (!data.success) {
-
                     message.textContent =
                         data.message || "Unable to load cart";
+                    return;
+                }
 
+                const items = data.cart || data.items || [];
+
+                if (items.length === 0) {
+                    message.textContent = "Your cart is empty.";
                     return;
                 }
 
                 message.textContent = "";
-
-                container.innerHTML = "";
-
-                const items =
-                    data.cart || data.items || [];
-
-                if (items.length === 0) {
-
-                    message.textContent =
-                        "Your cart is empty.";
-
-                    document.getElementById("totalAmount").textContent =
-                        "Total: ₹0";
-
-                    return;
-                }
-
                 let total = 0;
 
                 items.forEach(item => {
-
-                    const price =
-                        Number(item.price || 0);
-
-                    const quantity =
-                        Number(item.quantity || 1);
+                    const price = Number(item.price || 0);
+                    const quantity = Number(item.quantity || 1);
+                    const productId = Number(item.product_id);
 
                     total += price * quantity;
 
-                    const div =
-                        document.createElement("div");
-
+                    const div = document.createElement("div");
                     div.className = "cart-item";
 
-                    div.innerHTML = `
-                        <div class="item-info">
-                            <h2>${item.name || item.product_name}</h2>
+                    const info = document.createElement("div");
+                    info.className = "item-info";
 
-                            <p>
-                                Price: ₹${price}
-                            </p>
+                    const name = document.createElement("h2");
+                    name.textContent =
+                        item.name || item.product_name || "Product";
 
-                            <p>
-                                Subtotal: ₹${price * quantity}
-                            </p>
-                        </div>
+                    const priceText = document.createElement("p");
+                    priceText.textContent =
+                        "Price: ₹" + price.toFixed(2);
 
-                        <div class="quantity">
+                    const subtotalText = document.createElement("p");
+                    subtotalText.textContent =
+                        "Subtotal: ₹" + (price * quantity).toFixed(2);
 
-                            <button
-                                onclick="changeQuantity(
-                                    ${item.product_id},
-                                    ${quantity - 1}
-                                )">
-                                -
-                            </button>
+                    info.append(name, priceText, subtotalText);
 
-                            <span>${quantity}</span>
+                    const quantityDiv = document.createElement("div");
+                    quantityDiv.className = "quantity";
 
-                            <button
-                                onclick="changeQuantity(
-                                    ${item.product_id},
-                                    ${quantity + 1}
-                                )">
-                                +
-                            </button>
+                    const minus = document.createElement("button");
+                    minus.type = "button";
+                    minus.textContent = "-";
+                    minus.onclick = () =>
+                        changeQuantity(productId, quantity - 1);
 
-                        </div>
+                    const quantityText = document.createElement("span");
+                    quantityText.textContent = quantity;
 
-                        <button
-                            class="remove-btn"
-                            onclick="removeItem(${item.product_id})">
-                            Remove
-                        </button>
-                    `;
+                    const plus = document.createElement("button");
+                    plus.type = "button";
+                    plus.textContent = "+";
+                    plus.onclick = () =>
+                        changeQuantity(productId, quantity + 1);
 
+                    quantityDiv.append(minus, quantityText, plus);
+
+                    const remove = document.createElement("button");
+                    remove.type = "button";
+                    remove.className = "remove-btn";
+                    remove.textContent = "Remove";
+                    remove.onclick = () => removeItem(productId);
+
+                    div.append(info, quantityDiv, remove);
                     container.appendChild(div);
-
                 });
 
-                document.getElementById("totalAmount").textContent =
-                    "Total: ₹" + total;
+                totalAmount.textContent =
+                    "Total: ₹" + total.toFixed(2);
 
             } catch (error) {
-
-                console.error(error);
-
-                document.getElementById("message").textContent =
-                    "Cannot connect to backend";
+                console.error("Load cart error:", error);
+                message.textContent =
+                    "Cannot connect to backend. Please try again.";
             }
         }
 
-
         async function changeQuantity(productId, quantity) {
-
             if (quantity < 1) {
                 await removeItem(productId);
                 return;
             }
 
             try {
-
-                const response =
-                    await fetch(
-                        "http://localhost:5555/cart/update",
-                        {
-                            method: "PUT",
-
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-
-                            body: JSON.stringify({
-                                buyer_id: Number(buyerId),
-                                product_id: Number(productId),
-                                quantity: Number(quantity)
-                            })
-                        }
-                    );
+                const response = await apiFetch("/cart/update", {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        buyer_id: Number(buyerId),
+                        product_id: Number(productId),
+                        quantity: Number(quantity)
+                    })
+                });
 
                 const data = await response.json();
 
-                if (data.success) {
-                    loadCart();
-                } else {
-                    alert(
-                        data.message ||
-                        "Unable to update cart"
-                    );
+                if (!response.ok || !data.success) {
+                    alert(data.message || "Unable to update cart");
+                    return;
                 }
 
+                await loadCart();
+
             } catch (error) {
-
-                console.error(error);
-
+                console.error("Update cart error:", error);
                 alert("Cannot connect to backend");
             }
         }
-
 
         async function removeItem(productId) {
-
             try {
-
-                const response =
-                    await fetch(
-                        "http://localhost:5555/cart/remove",
-                        {
-                            method: "DELETE",
-
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-
-                            body: JSON.stringify({
-                                buyer_id: Number(buyerId),
-                                product_id: Number(productId)
-                            })
-                        }
-                    );
+                const response = await apiFetch("/cart/remove", {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        buyer_id: Number(buyerId),
+                        product_id: Number(productId)
+                    })
+                });
 
                 const data = await response.json();
 
-                if (data.success) {
-
-                    loadCart();
-
-                } else {
-
-                    alert(
-                        data.message ||
-                        "Unable to remove item"
-                    );
+                if (!response.ok || !data.success) {
+                    alert(data.message || "Unable to remove item");
+                    return;
                 }
 
+                await loadCart();
+
             } catch (error) {
-
-                console.error(error);
-
+                console.error("Remove cart item error:", error);
                 alert("Cannot connect to backend");
             }
         }
 
-
         function placeOrder() {
-
-            window.location.href =
-                "buyer-place-order.html";
+            window.location.href = "buyer-place-order.html";
         }
 
-
-        loadCart();
-
+        if (buyerId) {
+            loadCart();
+        }
     </script>
-
 </body>
 </html>
+```

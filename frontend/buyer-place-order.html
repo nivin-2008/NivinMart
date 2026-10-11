@@ -147,7 +147,7 @@
 
                 const response =
                     await fetch(
-                        "https://nivinmart-1.onrender.com/cart?buyer_id=" + buyerId
+                        "/cart?buyer_id=" + encodeURIComponent(buyerId)
                     );
 
                 const data = await response.json();
@@ -244,7 +244,7 @@
 
                 const response =
                     await fetch(
-                        "https://nivinmart-1.onrender.com/orders",
+                        "/orders",
                         {
                             method: "POST",
 

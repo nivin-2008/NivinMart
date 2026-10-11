@@ -8,7 +8,7 @@ void ProductController::getProducts(
     auto dbClient = app().getDbClient();
 
     dbClient->execSqlAsync(
-        "SELECT id, name, description, price, stock, category_id "
+        "SELECT id, name, description, price, stock, category_id, image_data "
         "FROM products ORDER BY id",
 
         [callback](const drogon::orm::Result &result)
@@ -31,6 +31,7 @@ void ProductController::getProducts(
 
                 product["price"] = row["price"].as<double>();
                 product["stock"] = row["stock"].as<int>();
+                product["image_data"] = row["image_data"].isNull() ? "" : row["image_data"].as<std::string>();
 
                 if (row["category_id"].isNull())
                     product["category_id"] = Json::nullValue;
@@ -91,14 +92,15 @@ void ProductController::addProduct(
 
     double price = (*json)["price"].asDouble();
     int stock = (*json)["stock"].asInt();
+    std::string imageData = json->isMember("image_data") ? (*json)["image_data"].asString() : "";
 
     auto dbClient = app().getDbClient();
 
     dbClient->execSqlAsync(
         "INSERT INTO products "
-        "(seller_id, name, description, price, stock) "
-        "VALUES ($1, $2, $3, $4, $5) "
-        "RETURNING id, name, description, price, stock",
+        "(seller_id, name, description, price, stock, image_data) "
+        "VALUES ($1, $2, $3, $4, $5, $6) "
+        "RETURNING id, name, description, price, stock, image_data",
 
         [callback](const drogon::orm::Result &result)
         {
@@ -121,6 +123,8 @@ void ProductController::addProduct(
 
             responseJson["product"]["stock"] =
                 result[0]["stock"].as<int>();
+            responseJson["product"]["image_data"] =
+                result[0]["image_data"].isNull() ? "" : result[0]["image_data"].as<std::string>();
 
             callback(
                 HttpResponse::newHttpJsonResponse(responseJson));
@@ -142,7 +146,8 @@ void ProductController::addProduct(
         name,
         description,
         price,
-        stock);
+        stock,
+        imageData);
 }
 
 
@@ -318,7 +323,7 @@ void ProductController::getSellerProducts(
     auto dbClient = app().getDbClient();
 
     dbClient->execSqlAsync(
-        "SELECT id, name, description, price, stock, category_id "
+        "SELECT id, name, description, price, stock, category_id, image_data "
         "FROM products "
         "WHERE seller_id = $1 "
         "ORDER BY id DESC",
@@ -349,6 +354,7 @@ void ProductController::getSellerProducts(
 
                 product["stock"] =
                     row["stock"].as<int>();
+                product["image_data"] = row["image_data"].isNull() ? "" : row["image_data"].as<std::string>();
 
                 if (row["category_id"].isNull())
                 {

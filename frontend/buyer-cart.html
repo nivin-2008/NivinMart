@@ -85,12 +85,6 @@
             font-size: 18px;
         }
 
-        .quantity span {
-            min-width: 25px;
-            text-align: center;
-            font-weight: bold;
-        }
-
         .remove-btn {
             border: none;
             background: #dc2626;
@@ -127,6 +121,11 @@
             color: white;
             font-size: 17px;
             cursor: pointer;
+        }
+
+        .order-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         #message {
@@ -172,7 +171,8 @@
             <h2>Order Summary</h2>
             <div class="total" id="totalAmount">Total: ₹0</div>
 
-            <button class="order-btn" onclick="placeOrder()">
+            <button class="order-btn" id="orderButton"
+                    onclick="placeOrder()">
                 Place Order
             </button>
         </div>
@@ -185,6 +185,11 @@
         const buyerId = localStorage.getItem("buyerId");
         const buyerName = localStorage.getItem("buyerName");
 
+        const message = document.getElementById("message");
+        const container = document.getElementById("cartContainer");
+        const totalAmount = document.getElementById("totalAmount");
+        const orderButton = document.getElementById("orderButton");
+
         if (!buyerId) {
             window.location.href = "buyer-login.html";
         }
@@ -193,17 +198,15 @@
             "Welcome, " + (buyerName || "Buyer");
 
         async function apiFetch(path, options = {}) {
-            return await fetch(API_BASE + path, options);
+            const response = await fetch(API_BASE + path, options);
+            return response;
         }
 
         async function loadCart() {
-            const container = document.getElementById("cartContainer");
-            const message = document.getElementById("message");
-            const totalAmount = document.getElementById("totalAmount");
-
-            message.textContent = "Loading cart...";
             container.innerHTML = "";
+            message.textContent = "Loading cart...";
             totalAmount.textContent = "Total: ₹0";
+            orderButton.disabled = true;
 
             try {
                 const response = await apiFetch(
@@ -211,7 +214,7 @@
                 );
 
                 if (!response.ok) {
-                    throw new Error("Cart request failed: " + response.status);
+                    throw new Error("Cart API returned HTTP " + response.status);
                 }
 
                 const data = await response.json();
@@ -224,7 +227,7 @@
 
                 const items = data.cart || data.items || [];
 
-                if (items.length === 0) {
+                if (!Array.isArray(items) || items.length === 0) {
                     message.textContent = "Your cart is empty.";
                     return;
                 }
@@ -292,10 +295,13 @@
                 totalAmount.textContent =
                     "Total: ₹" + total.toFixed(2);
 
+                orderButton.disabled = false;
+
             } catch (error) {
                 console.error("Load cart error:", error);
                 message.textContent =
-                    "Cannot connect to backend. Please try again.";
+                    "Cannot load cart. Please refresh and try again.";
+                orderButton.disabled = true;
             }
         }
 
@@ -362,6 +368,7 @@
         }
 
         function placeOrder() {
+            // Order submission is handled by the separate checkout page.
             window.location.href = "buyer-place-order.html";
         }
 

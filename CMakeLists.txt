@@ -7,8 +7,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Drogon CONFIG REQUIRED)
 
-find_path(SODIUM_INCLUDE_DIR sodium.h REQUIRED)
-find_library(SODIUM_LIBRARY NAMES sodium REQUIRED)
+find_path(SODIUM_INCLUDE_DIR sodium.h
+    PATHS "C:/vcpkg/installed/x64-windows/include"
+    REQUIRED
+)
+find_library(SODIUM_LIBRARY
+    NAMES libsodium sodium
+    PATHS "C:/vcpkg/installed/x64-windows/lib"
+    REQUIRED
+)
 
 add_executable(${PROJECT_NAME} main.cpp)
 

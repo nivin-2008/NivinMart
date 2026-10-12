@@ -2,6 +2,7 @@
 #include <drogon/drogon.h>
 #include <sodium.h>
 #include <string>
+#include <cstdlib>
 
 void LoginController::login(
     const HttpRequestPtr& req,
@@ -22,6 +23,45 @@ void LoginController::login(
 
     std::string email = (*json)["email"].asString();
     std::string password = (*json)["password"].asString();
+
+    // Dedicated admin credentials are configured by the hosting environment.
+    // Never commit an admin password to the repository.
+    const char *adminEmailValue = std::getenv("ADMIN_EMAIL");
+    const char *adminPasswordValue = std::getenv("ADMIN_PASSWORD");
+    const std::string adminEmail = adminEmailValue
+        ? adminEmailValue
+        : "sharabova@gmail.com";
+
+    if (email == adminEmail)
+    {
+        Json::Value response;
+
+        if (!adminPasswordValue || std::string(adminPasswordValue).empty())
+        {
+            response["success"] = false;
+            response["message"] =
+                "Admin login is not configured. Set ADMIN_PASSWORD in the hosting environment.";
+            callback(HttpResponse::newHttpJsonResponse(response));
+            return;
+        }
+
+        if (password != adminPasswordValue)
+        {
+            response["success"] = false;
+            response["message"] = "Invalid email or password";
+            callback(HttpResponse::newHttpJsonResponse(response));
+            return;
+        }
+
+        response["success"] = true;
+        response["message"] = "Login successful";
+        response["id"] = 0;
+        response["name"] = "Admin";
+        response["email"] = adminEmail;
+        response["role"] = "admin";
+        callback(HttpResponse::newHttpJsonResponse(response));
+        return;
+    }
 
     if (sodium_init() < 0)
     {

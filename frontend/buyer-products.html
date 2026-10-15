@@ -126,11 +126,13 @@
             background: #f9fafb;
             border-radius: 10px;
             margin-bottom: 16px;
+            cursor: pointer;
         }
 
         .product-card h2 {
             font-size: 22px;
             margin-bottom: 12px;
+            cursor: pointer;
         }
 
         .description {
@@ -466,6 +468,24 @@
                 }
             });
 
+
+            // Clicking the product image or name opens that product's reviews.
+            if (product.image_data) {
+                const productImage = card.querySelector(".product-image");
+                if (productImage) {
+                    productImage.title = "Click to view ratings and reviews";
+                    productImage.addEventListener("click", function() {
+                        if (reviewsList.hidden) reviewsButton.click();
+                        reviewsList.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                    });
+                }
+            }
+
+            title.title = "Click to view ratings and reviews";
+            title.addEventListener("click", function() {
+                if (reviewsList.hidden) reviewsButton.click();
+                reviewsList.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            });
 
             // Add to Cart button
             const cartButton = document.createElement("button");

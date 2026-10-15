@@ -34,7 +34,7 @@ int main()
             dbName,
             dbUser,
             dbPassword,
-            4);
+            1);
     }
 
     app.run();

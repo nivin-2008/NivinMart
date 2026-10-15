@@ -486,24 +486,21 @@ void OrderController::updateOrderStatus(
                 result[0]["status"].as<std::string>();
 
 
-            bool valid = false;
+            // Allow sellers to move an order forward even if they need
+            // to skip an intermediate step (for example, Confirmed -> Delivered).
+            // Treat legacy "Shipping" values as "Shipped".
+            auto statusRank = [](std::string status) {
+                if (status == "Pending") return 0;
+                if (status == "Confirmed") return 1;
+                if (status == "Shipped" || status == "Shipping") return 2;
+                if (status == "Delivered" || status == "Delivery") return 3;
+                return -1;
+            };
 
-
-            if (currentStatus == "Pending" &&
-                newStatus == "Confirmed")
-            {
-                valid = true;
-            }
-            else if (currentStatus == "Confirmed" &&
-                     newStatus == "Shipped")
-            {
-                valid = true;
-            }
-            else if (currentStatus == "Shipped" &&
-                     newStatus == "Delivered")
-            {
-                valid = true;
-            }
+            int currentRank = statusRank(currentStatus);
+            int newRank = statusRank(newStatus);
+            bool valid = currentRank >= 0 &&
+                         newRank > currentRank;
 
 
             if (!valid)
